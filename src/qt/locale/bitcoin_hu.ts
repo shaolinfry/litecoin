@@ -1095,6 +1095,10 @@ Cím: %4
         <translation>Csak megfigyelés</translation>
     </message>
     <message>
+        <source>Watch-only:</source>
+        <translation>Csak megfigyelés</translation>
+    </message>
+    <message>
         <source>Available:</source>
         <translation>Elérhető:</translation>
     </message>

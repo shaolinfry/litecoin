@@ -6,7 +6,8 @@ suites:
 architectures:
 - "amd64"
 packages: 
-- "g++"
+- "g++-multilib"
+- "curl"
 - "git-core"
 - "pkg-config"
 - "autoconf2.13"
