@@ -151,7 +151,7 @@ testScripts = [
     'signmessages.py',
     'nulldummy.py',
     'import-rescan.py',
-    'bumpfee.py',
+    #'bumpfee.py', Litecoin: RBF Disabled
     'rpcnamedargs.py',
     'listsinceblock.py',
     'p2p-leaktests.py',
