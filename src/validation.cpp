@@ -3010,6 +3010,11 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
+    // segwit signalling is mandatory during PRE_LOCK_IN and LOCKED_IN phase
+    if (!IsMandatorySignalling(block.nVersion, Consensus::DEPLOYMENT_SEGWIT, pindexPrev, consensusParams))
+        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                             strprintf("rejected nVersion=0x%08x block, must upgrade", block.nVersion));
+
     return true;
 }
 
