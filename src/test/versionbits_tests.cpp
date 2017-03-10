@@ -14,6 +14,7 @@
 
 /* Define a virtual block time, one block per 10 minutes after Nov 14 2014, 0:55:36am */
 int32_t TestTime(int nHeight) { return 1415926536 + 600 * nHeight; }
+int32_t ActivationTestTime(int nHeight) { return nHeight == 0 ? 0 : TestTime(nHeight); }
 
 static const Consensus::Params paramsDummy = Consensus::Params();
 
@@ -21,13 +22,16 @@ class TestConditionChecker : public AbstractThresholdConditionChecker
 {
 private:
     mutable ThresholdConditionCache cache;
+    int64_t activation_time = 0;
 
 public:
     int64_t BeginTime(const Consensus::Params& params) const { return TestTime(10000); }
     int64_t EndTime(const Consensus::Params& params) const { return TestTime(20000); }
+    int64_t ActivationTime(const Consensus::Params& params) const { return ActivationTestTime(this->activation_time); }
     int Period(const Consensus::Params& params) const { return 1000; }
     int Threshold(const Consensus::Params& params) const { return 900; }
     bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const { return (pindex->nVersion & 0x100); }
+    void SetActivationTime(int64_t n) { this->activation_time = n; }
 
     ThresholdState GetStateFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::GetStateFor(pindexPrev, paramsDummy, cache); }
     int GetStateSinceHeightFor(const CBlockIndex* pindexPrev) const { return AbstractThresholdConditionChecker::GetStateSinceHeightFor(pindexPrev, paramsDummy, cache); }
@@ -50,6 +54,13 @@ class VersionBitsTester
 
 public:
     VersionBitsTester() : num(0) {}
+
+    VersionBitsTester& SetCheckerActivationTestTime(int64_t n) {
+        for (unsigned int  i = 0; i < CHECKERS; i++) {
+            checker[i].SetActivationTime(n);
+        }
+        return *this;
+    }
 
     VersionBitsTester& Reset() {
         for (unsigned int i = 0; i < vpblock.size(); i++) {
@@ -103,6 +114,16 @@ public:
         for (int i = 0; i < CHECKERS; i++) {
             if ((insecure_rand() & ((1 << i) - 1)) == 0) {
                 BOOST_CHECK_MESSAGE(checker[i].GetStateFor(vpblock.empty() ? NULL : vpblock.back()) == THRESHOLD_STARTED, strprintf("Test %i for STARTED", num));
+            }
+        }
+        num++;
+        return *this;
+    }
+
+    VersionBitsTester& TestPreLockIn() {
+        for (int i = 0; i < CHECKERS; i++) {
+            if ((insecure_rand() & ((1 << i) - 1)) == 0) {
+                BOOST_CHECK_MESSAGE(checker[i].GetStateFor(vpblock.empty() ? NULL : vpblock.back()) == THRESHOLD_PRE_LOCK_IN, strprintf("Test %i for PRE_LOCK_IN", num));
             }
         }
         num++;
@@ -205,7 +226,35 @@ BOOST_AUTO_TEST_CASE(versionbits_test)
                            .Mine(4000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
                            .Mine(5000, TestTime(10000), 0).TestStarted().TestStateSinceHeight(3000)
                            .Mine(6000, TestTime(20000), 0).TestFailed().TestStateSinceHeight(6000)
-                           .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000);
+                           .Mine(7000, TestTime(20000), 0x100).TestFailed().TestStateSinceHeight(6000)
+
+        // DEFINED -> STARTED -> PRE_LOCKED_IN -> LOCKEDIN -> ACTIVE (activation mandatory)
+                           .Reset().SetCheckerActivationTestTime(14999).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1, TestTime(1), 0x200).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(9999) - 1, 0x200).TestDefined().TestStateSinceHeight(0) // One second more and it would be defined
+                           .Mine(1999, TestTime(10000), 0).TestDefined().TestStateSinceHeight(0)
+                           .Mine(2000, TestTime(11000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(4000, TestTime(12000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(5000, TestTime(13000), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(5999, TestTime(14999), 0).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(6000, TestTime(15000), 0).TestPreLockIn().TestStateSinceHeight(6000)
+                           .Mine(6999, TestTime(15999), 0).TestPreLockIn().TestStateSinceHeight(6000)
+                           .Mine(7000, TestTime(16000), 0).TestLockedIn().TestStateSinceHeight(7000)
+                           .Mine(7999, TestTime(17000), 0).TestLockedIn().TestStateSinceHeight(7000)
+                           .Mine(8000, TestTime(17001), 0).TestActive().TestStateSinceHeight(8000)   // state change
+
+        // DEFINED -> STARTED -> LOCKEDIN -> ACTIVE (activation by signal)
+                           .Reset().SetCheckerActivationTestTime(15000).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1, TestTime(1), 0x200).TestDefined().TestStateSinceHeight(0)
+                           .Mine(1000, TestTime(9999) - 1, 0x200).TestDefined().TestStateSinceHeight(0)
+                           .Mine(2000, TestTime(10000), 0x101).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(2050, TestTime(10010), 0x200).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(2950, TestTime(10020), 0x100).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(2999, TestTime(11999), 0x200).TestStarted().TestStateSinceHeight(2000)
+                           .Mine(3000, TestTime(12000), 0x200).TestLockedIn().TestStateSinceHeight(3000)
+                           .Mine(3999, TestTime(12500), 0).TestLockedIn().TestStateSinceHeight(3000)
+                           .Mine(4000, TestTime(13000), 0).TestActive().TestStateSinceHeight(4000)
+        ;
     }
 
     // Sanity checks of version bit deployments
