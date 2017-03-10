@@ -1053,6 +1053,7 @@ static UniValue BIP9SoftForkDesc(const Consensus::Params& consensusParams, Conse
     switch (thresholdState) {
     case THRESHOLD_DEFINED: rv.push_back(Pair("status", "defined")); break;
     case THRESHOLD_STARTED: rv.push_back(Pair("status", "started")); break;
+    case THRESHOLD_PRE_LOCK_IN: rv.push_back(Pair("status", "pre_locked_in")); break;
     case THRESHOLD_LOCKED_IN: rv.push_back(Pair("status", "locked_in")); break;
     case THRESHOLD_ACTIVE: rv.push_back(Pair("status", "active")); break;
     case THRESHOLD_FAILED: rv.push_back(Pair("status", "failed")); break;

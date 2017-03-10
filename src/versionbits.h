@@ -23,6 +23,7 @@ enum ThresholdState {
     THRESHOLD_LOCKED_IN,
     THRESHOLD_ACTIVE,
     THRESHOLD_FAILED,
+    THRESHOLD_PRE_LOCK_IN,
 };
 
 // A map that gives the state for blocks whose height is a multiple of Period().
@@ -47,6 +48,7 @@ protected:
     virtual bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const =0;
     virtual int64_t BeginTime(const Consensus::Params& params) const =0;
     virtual int64_t EndTime(const Consensus::Params& params) const =0;
+    virtual int64_t ActivationTime(const Consensus::Params& params) const =0;
     virtual int Period(const Consensus::Params& params) const =0;
     virtual int Threshold(const Consensus::Params& params) const =0;
 

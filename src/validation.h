@@ -338,6 +338,9 @@ ThresholdState VersionBitsTipState(const Consensus::Params& params, Consensus::D
 /** Get the block height at which the BIP9 deployment switched into the state for the block building on the current tip. */
 int VersionBitsTipStateSinceHeight(const Consensus::Params& params, Consensus::DeploymentPos pos);
 
+/** Check if versionbit is required for deployment */
+bool IsMandatorySignalling(int32_t nVersion, Consensus::DeploymentPos pos, const CBlockIndex* pindexPrev, const Consensus::Params& params);
+
 /** 
  * Count ECDSA signature operations the old-fashioned (pre-0.6) way
  * @return number of sigops this transaction's outputs will produce when spent

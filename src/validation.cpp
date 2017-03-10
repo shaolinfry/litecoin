@@ -1713,6 +1713,7 @@ public:
 
     int64_t BeginTime(const Consensus::Params& params) const { return 0; }
     int64_t EndTime(const Consensus::Params& params) const { return std::numeric_limits<int64_t>::max(); }
+    int64_t ActivationTime(const Consensus::Params& params) const { return std::numeric_limits<int64_t>::max(); }
     int Period(const Consensus::Params& params) const { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const { return params.nRuleChangeActivationThreshold; }
 
@@ -2969,6 +2970,21 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
     }
     UpdateUncommittedBlockStructures(block, pindexPrev, consensusParams);
     return commitment;
+}
+
+/**
+ * Return true if nVersion BIP9 deployment is signalling during
+ * mandatory periods.
+ */
+bool IsMandatorySignalling(int32_t nVersion, Consensus::DeploymentPos pos, const CBlockIndex* pindexPrev, const Consensus::Params& params)
+{
+   // Check the deployment is in the correct state for this check to apply.
+    if (!((VersionBitsState(pindexPrev, params, pos, versionbitscache) == THRESHOLD_PRE_LOCK_IN) ||
+          (VersionBitsState(pindexPrev, params, pos, versionbitscache) == THRESHOLD_LOCKED_IN)))
+        return true;
+
+    // return signalling state
+    return (((nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) && (nVersion & VersionBitsMask(params, pos)) != 0);
 }
 
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev, int64_t nAdjustedTime)

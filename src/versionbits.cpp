@@ -27,6 +27,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
     int nThreshold = Threshold(params);
     int64_t nTimeStart = BeginTime(params);
     int64_t nTimeTimeout = EndTime(params);
+    int64_t nActivationTime = ActivationTime(params);
 
     // A block's state is always the same as that of the first of its period, so it is computed based on a pindexPrev whose height equals a multiple of nPeriod - 1.
     if (pindexPrev != NULL) {
@@ -70,6 +71,11 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 break;
             }
             case THRESHOLD_STARTED: {
+                // Transition to THRESHOLD_PRE_LOCK_IN if mandatory activation is set
+                if ((nActivationTime != 0) && pindexPrev->GetMedianTimePast() >= nActivationTime) {
+                    stateNext = THRESHOLD_PRE_LOCK_IN;
+                    break;
+                }
                 if (pindexPrev->GetMedianTimePast() >= nTimeTimeout) {
                     stateNext = THRESHOLD_FAILED;
                     break;
@@ -86,6 +92,11 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
                 if (count >= nThreshold) {
                     stateNext = THRESHOLD_LOCKED_IN;
                 }
+                break;
+            }
+            case THRESHOLD_PRE_LOCK_IN: {
+                // Always progresses into THRESHOLD_LOCKED_IN.
+                stateNext = THRESHOLD_LOCKED_IN;
                 break;
             }
             case THRESHOLD_LOCKED_IN: {
@@ -147,6 +158,7 @@ private:
 protected:
     int64_t BeginTime(const Consensus::Params& params) const { return params.vDeployments[id].nStartTime; }
     int64_t EndTime(const Consensus::Params& params) const { return params.vDeployments[id].nTimeout; }
+    int64_t ActivationTime(const Consensus::Params& params) const { return params.vDeployments[id].nActivationTime; }
     int Period(const Consensus::Params& params) const { return params.nMinerConfirmationWindow; }
     int Threshold(const Consensus::Params& params) const { return params.nRuleChangeActivationThreshold; }
 
