@@ -31,6 +31,10 @@ struct BIP9Deployment {
     int64_t nStartTime;
     /** Timeout/expiry MedianTime for the deployment attempt. */
     int64_t nTimeout;
+    /** Mandatory activation MedianTime, default 0 to disable
+     * the first retarget after this value for a STARTED deployment
+     * will transition deployment to PRE_LOCK_IN */
+    int64_t nActivationTime = 0;
 };
 
 /**
