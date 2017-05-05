@@ -51,6 +51,7 @@ NODE_NETWORK = (1 << 0)
 NODE_GETUTXO = (1 << 1)
 NODE_BLOOM = (1 << 2)
 NODE_WITNESS = (1 << 3)
+NODE_UAWITNESS = (1 << 5)
 
 logger = logging.getLogger("TestFramework.mininode")
 

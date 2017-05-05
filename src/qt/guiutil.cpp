@@ -924,7 +924,7 @@ QString formatServicesStr(quint64 mask)
             case NODE_BLOOM:
                 strList.append("BLOOM");
                 break;
-            case NODE_WITNESS:
+            case NODE_UAWITNESS:
                 strList.append("WITNESS");
                 break;
             case NODE_XTHIN:

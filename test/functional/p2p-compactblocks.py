@@ -374,7 +374,7 @@ class CompactBlocksTest(BitcoinTestFramework):
     # via header or inv, and that responding to getblocktxn causes the block
     # to be successfully reconstructed.
     # Post-segwit: upgraded nodes would only make this request of cb-version-2,
-    # NODE_WITNESS peers.  Unupgraded nodes would still make this request of
+    # NODE_UAWITNESS peers.  Unupgraded nodes would still make this request of
     # any cb-version-1-supporting peer.
     def test_compactblock_requests(self, node, test_node, version, segwit):
         # Try announcing a block with an inv or header, expect a compactblock
@@ -691,7 +691,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
     def activate_segwit(self, node):
         node.generate(144*3)
-        assert_equal(get_bip9_status(node, "segwit")["status"], 'active')
+        assert_equal(get_bip8_status(node, "segwit")["status"], 'active')
 
     def test_end_to_end_block_relay(self, node, listeners):
         utxo = self.utxos.pop(0)
@@ -808,7 +808,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         connections = []
         connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], self.test_node))
         connections.append(NodeConn('127.0.0.1', p2p_port(1), self.nodes[1],
-                    self.segwit_node, services=NODE_NETWORK|NODE_WITNESS))
+                    self.segwit_node, services=NODE_NETWORK|NODE_UAWITNESS))
         connections.append(NodeConn('127.0.0.1', p2p_port(1), self.nodes[1],
                     self.old_node, services=NODE_NETWORK))
         self.test_node.add_connection(connections[0])

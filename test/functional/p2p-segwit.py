@@ -142,8 +142,8 @@ class SegWitTest(BitcoinTestFramework):
 
     ''' Individual tests '''
     def test_witness_services(self):
-        self.log.info("Verifying NODE_WITNESS service bit")
-        assert((self.test_node.connection.nServices & NODE_WITNESS) != 0)
+        self.log.info("Verifying NODE_UAWITNESS service bit")
+        assert((self.test_node.connection.nServices & NODE_UAWITNESS) != 0)
 
 
     # See if sending a regular transaction works, and create a utxo
@@ -184,7 +184,7 @@ class SegWitTest(BitcoinTestFramework):
         # For now, rely on earlier tests to have created at least one utxo for
         # us to use
         assert(len(self.utxo) > 0)
-        assert(get_bip9_status(self.nodes[0], 'segwit')['status'] != 'active')
+        assert(get_bip8_status(self.nodes[0], 'segwit')['status'] != 'active')
 
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
@@ -273,36 +273,36 @@ class SegWitTest(BitcoinTestFramework):
         # Will need to rewrite the tests here if we are past the first period
         assert(height < VB_PERIOD - 1)
         # Genesis block is 'defined'.
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'defined')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'defined')
         # Advance to end of period, status should now be 'started'
         self.nodes[0].generate(VB_PERIOD-height-1)
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'started')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'started')
 
     # Mine enough blocks to lock in segwit, but don't activate.
     # TODO: we could verify that lockin only happens at the right threshold of
     # signalling blocks, rather than just at the right period boundary.
     def advance_to_segwit_lockin(self):
         height = self.nodes[0].getblockcount()
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'started')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'started')
         # Advance to end of period, and verify lock-in happens at the end
         self.nodes[0].generate(VB_PERIOD-1)
         height = self.nodes[0].getblockcount()
         assert((height % VB_PERIOD) == VB_PERIOD - 2)
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'started')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'started')
         self.nodes[0].generate(1)
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'locked_in')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'locked_in')
 
 
     # Mine enough blocks to activate segwit.
     # TODO: we could verify that activation only happens at the right threshold
     # of signalling blocks, rather than just at the right period boundary.
     def advance_to_segwit_active(self):
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'locked_in')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'locked_in')
         height = self.nodes[0].getblockcount()
         self.nodes[0].generate(VB_PERIOD - (height%VB_PERIOD) - 2)
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'locked_in')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'locked_in')
         self.nodes[0].generate(1)
-        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'active')
+        assert_equal(get_bip8_status(self.nodes[0], 'segwit')['status'], 'active')
 
 
     # This test can only be run after segwit has activated
@@ -817,7 +817,7 @@ class SegWitTest(BitcoinTestFramework):
         tx_hash = tx.sha256
         tx_value = tx.vout[0].nValue
 
-        # Verify that if a peer doesn't set nServices to include NODE_WITNESS,
+        # Verify that if a peer doesn't set nServices to include NODE_UAWITNESS,
         # the getdata is just for the non-witness portion.
         self.old_node.announce_tx_and_wait_for_getdata(tx)
         assert(self.old_node.last_message["getdata"].inv[0].type == 1)
@@ -939,7 +939,7 @@ class SegWitTest(BitcoinTestFramework):
         self.utxo.append(UTXO(tx3.sha256, 0, tx3.vout[0].nValue))
 
 
-    # Test that block requests to NODE_WITNESS peer are with MSG_WITNESS_FLAG
+    # Test that block requests to NODE_UAWITNESS peer are with MSG_WITNESS_FLAG
     # This is true regardless of segwit activation.
     # Also test that we don't ask for blocks from unupgraded peers
     def test_block_relay(self, segwit_activated):
@@ -947,7 +947,7 @@ class SegWitTest(BitcoinTestFramework):
 
         blocktype = 2|MSG_WITNESS_FLAG
 
-        # test_node has set NODE_WITNESS, so all getdata requests should be for
+        # test_node has set NODE_UAWITNESS, so all getdata requests should be for
         # witness blocks.
         # Test announcing a block via inv results in a getdata, and that
         # announcing a version 4 or random VB block with a header results in a getdata
@@ -1502,7 +1502,7 @@ class SegWitTest(BitcoinTestFramework):
         sync_blocks(self.nodes)
 
         # Make sure that this peer thinks segwit has activated.
-        assert(get_bip9_status(node, 'segwit')['status'] == "active")
+        assert(get_bip8_status(node, 'segwit')['status'] == "active")
 
         # Make sure this peers blocks match those of node0.
         height = node.getblockcount()
@@ -1870,16 +1870,16 @@ class SegWitTest(BitcoinTestFramework):
 
     def run_test(self):
         # Setup the p2p connections and start up the network thread.
-        self.test_node = TestNode() # sets NODE_WITNESS|NODE_NETWORK
+        self.test_node = TestNode() # sets NODE_UAWITNESS|NODE_NETWORK
         self.old_node = TestNode()  # only NODE_NETWORK
         self.std_node = TestNode() # for testing node1 (fRequireStandard=true)
 
         self.p2p_connections = [self.test_node, self.old_node]
 
         self.connections = []
-        self.connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], self.test_node, services=NODE_NETWORK|NODE_WITNESS))
+        self.connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], self.test_node, services=NODE_NETWORK|NODE_UAWITNESS))
         self.connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], self.old_node, services=NODE_NETWORK))
-        self.connections.append(NodeConn('127.0.0.1', p2p_port(1), self.nodes[1], self.std_node, services=NODE_NETWORK|NODE_WITNESS))
+        self.connections.append(NodeConn('127.0.0.1', p2p_port(1), self.nodes[1], self.std_node, services=NODE_NETWORK|NODE_UAWITNESS))
         self.test_node.add_connection(self.connections[0])
         self.old_node.add_connection(self.connections[1])
         self.std_node.add_connection(self.connections[2])
@@ -1894,7 +1894,7 @@ class SegWitTest(BitcoinTestFramework):
 
         self.log.info("Starting tests before segwit lock in:")
 
-        self.test_witness_services() # Verifies NODE_WITNESS
+        self.test_witness_services() # Verifies NODE_UAWITNESS
         self.test_non_witness_transaction() # non-witness tx's are accepted
         self.test_unnecessary_witness_before_segwit_activation()
         self.test_block_relay(segwit_activated=False)
