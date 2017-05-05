@@ -48,6 +48,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <memory>
+#include <ctime>
 
 #ifndef WIN32
 #include <signal.h>
@@ -1179,6 +1180,13 @@ bool AppInitSanityChecks()
 bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
     const CChainParams& chainparams = Params();
+    std::time_t result = std::time(nullptr);
+
+    // Don't allow this to run on mainnet before before Nov 7th 2017
+    if (!Params().GetConsensus().fPowAllowMinDifficultyBlocks && result < 1510012800) {
+        InitError("This BIP149 SegWit-UASF implementation is not safe to run on mainnet until after November 7th 2017 providing BIP9 segwit has failed to activate or lock-in.\n\nFeel free to run a standard node until then with uacomment=UASF-SegWit-BIP149 in the bitcoin.conf file.\n\nYou can run this version using -testnet or -regtest modes.");
+        return false;
+    }
     // ********************************************************* Step 4a: application initialization
     // After daemonization get the data directory lock again and hold on to it until exit
     // This creates a slight window for a race condition to happen, however this condition is harmless: it
